@@ -21,7 +21,7 @@ embedding_upstage = UpstageEmbeddings(model="embedding-query")
 
 pinecone_api_key = os.environ.get("PINECONE_API_KEY")
 pc = Pinecone(api_key=pinecone_api_key)
-index_name = "eco3"
+index_name = "eco4"
 
 # create new index
 if index_name not in pc.list_indexes().names():
@@ -85,7 +85,7 @@ async def chat_endpoint(req: MessageRequest):
             ("system", "너는 금융용어 및 금융상품 설명 챗봇이 올바르게 답변하는지를 필터링하는 봇이야." \
              "내용은 Q: (질문 내용)\\nA: (답변 내용) 과 같은 형식으로 들어오는데, 이것을 다음과 같은 요구사항에 따라 출력해야 돼." \
                  "(질문 내용)이 금융상품 관련 내용이면 무조건 (답변 내용)을 출력해야 돼." \
-                    "(질문 내용)이 음식, 날씨, 스포츠, 게임, 컴퓨터, 언어, 음악, 드라마, 애니메이션, 영화 등 금융과 관련되지 않은 내용이라면 금융 관련 챗봇이기 때문에 모르겠다거나 설명해드릴 수 없다고 출력해야 돼." \
+                    "(질문 내용)이 음식, 날씨, 스포츠, 게임, 컴퓨터, 언어, 음악, 드라마, 애니메이션, 영화, 사회 등 금융과 관련되지 않은 내용이라면 금융 관련 챗봇이기 때문에 모르겠다거나 설명해드릴 수 없다고 출력해야 돼." \
                         "(답변 내용)에 (질문 내용)에서 묻지 않은 회사의 내용이 포함되어 있다면, (답변 내용)에서 그 부분은 제외하고 다듬어서 출력해야 돼." \
                         "(질문 내용)에서 \"국민은행\"에 대해 묻는다면 \"KB국민은행\"으로 취급해 줘."
                         ),
