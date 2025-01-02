@@ -1,16 +1,16 @@
-# fly.toml app configuration file generated for ssafy-2024-backend-blue-smoke-2653 on 2025-01-02T09:36:23+09:00
+# fly.toml app configuration file generated for ssafy-team5-ssafinancial on 2025-01-03T02:50:05+09:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'ssafy-2024-backend-blue-smoke-2653'
+app = 'ssafy-team5-ssafinancial'
 primary_region = 'nrt'
 
 [build]
   builder = 'paketobuildpacks/builder:base'
 
 [env]
-  PORT = "8080"
+  PORT = '8080'
 
 [http_service]
   internal_port = 8080
