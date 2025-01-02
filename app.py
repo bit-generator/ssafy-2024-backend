@@ -16,7 +16,7 @@ from pydantic import BaseModel
 load_dotenv()
 
 # upstage models
-chat_upstage = ChatUpstage()
+chat_upstage = ChatUpstage(model="solar-pro")
 embedding_upstage = UpstageEmbeddings(model="embedding-query")
 
 pinecone_api_key = os.environ.get("PINECONE_API_KEY")
@@ -36,7 +36,7 @@ pinecone_vectorstore = PineconeVectorStore(index=pc.Index(index_name), embedding
 
 pinecone_retriever = pinecone_vectorstore.as_retriever(
     search_type='mmr',  # default : similarity(유사도) / mmr 알고리즘
-    search_kwargs={"k": 3}  # 쿼리와 관련된 chunk를 3개 검색하기 (default : 4)
+    search_kwargs={"k": 10}  # 쿼리와 관련된 chunk를 3개 검색하기 (default : 4)
 )
 
 app = FastAPI()
@@ -84,7 +84,29 @@ async def chat_endpoint(req: MessageRequest):
             ("system", "너는 금융용어 및 금융상품 설명 챗봇이 올바르게 답변하는지를 필터링하는 봇이야." \
              "다음과 같은 요구사항에 따라 출력해야 돼." \
                  "금융상품 관련 내용: 가장 적합한 내용을 찾아 답변을 제시하고, 수치가 있을 경우 수치를 함께 제시. 수치는 가장 중요한 값을 우선적으로 제시하고, 다른 수치가 있다면 함께 제시. 만약 해당 금융상품에 대한 내용이 문서에 없다면 모른다고 답변해" \
-                    "음식이나 날씨, 스포츠, 게임 등 금융과 관련되지 않은 내용: 금융 관련 챗봇이기 때문에 모르겠다거나 설명해드릴 수 없다고 답할 것."),
+                    "음식, 날씨, 스포츠, 게임, 컴퓨터, 언어, 음악, 드라마, 애니메이션, 영화 등 모든 금융과 관련되지 않은 내용: 금융 관련 챗봇이기 때문에 모르겠다거나 설명해드릴 수 없다고 답할 것." \
+                        "너의 존재에 대해 묻는다면 금융용어 및 금융상품을 알려주는 챗봇이라고 답할 것."
+                        ),
+
+            # few-shot prompting
+            ("human", "감가상각이 뭔지 모르겠는데 알려줘."),  # human request
+            ("ai", "감가상각은 ~ "),      # LLM response
+            ("human", "C++과 python 중 어느 게 AI 개발에 더 적합하지?"),
+            ("ai",  "프로그래밍 언어는 제 전문이 아니므로 답변해드릴 수 없습니다."),
+            ("human", "로맨스 드라마 추천 좀 해줘."),
+            ("ai",  "드라마는 제 전문이 아니므로 답변해드릴 수 없습니다."),
+            ("human", "로맨스 드라마 추천 좀 해줘."),
+            ("ai",  "드라마는 제 전문이 아니므로 답변해드릴 수 없습니다."),
+            ("human", "국민은행의 금융상품에는 어떤 것이 있는지 설명해줘."),
+            ("ai",  "국민은행에는 ~"),
+            ("human", "오늘 금융상담 중 \"만기\"라는 용어가 나왔는데 무슨 뜻인지 모르겠다. 알려줄 수 있어?"),
+            ("ai",  "만기는 ~"),
+            ("human", "리그 오브 레전드에 대해 설명해줘."),
+            ("ai",  "게임은 제 전문이 아니므로 답변해드릴 수 없습니다."),
+            ("human", "안녕하세요는 일본어로 뭐라고 해?"),
+            ("ai",  "언어는 제 전문이 아니므로 답변해드릴 수 없습니다."),
+            ("human", "오늘 저녁은 뭐가 좋을지 추천해줄 수 있어?"),
+            ("ai",  "음식은 제 전문이 아니므로 답변해드릴 수 없습니다."),
 
             # User Query
             ("human", result['result']),
