@@ -1,21 +1,21 @@
-# fly.toml app configuration file generated for ssafy-2024-backend on 2024-12-17T15:14:18+09:00
+# fly.toml app configuration file generated for ssafy-2024-backend-blue-smoke-2653 on 2025-01-02T09:36:23+09:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'ssafy-2024-backend'
+app = 'ssafy-2024-backend-blue-smoke-2653'
 primary_region = 'nrt'
 
 [build]
   builder = 'paketobuildpacks/builder:base'
 
 [env]
-  PORT = '8000'
+  PORT = "8080"
 
 [http_service]
-  internal_port = 8000
+  internal_port = 8080
   force_https = true
-  auto_stop_machines = true
+  auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 0
   processes = ['app']
