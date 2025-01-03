@@ -36,7 +36,7 @@ pinecone_vectorstore = PineconeVectorStore(index=pc.Index(index_name), embedding
 
 pinecone_retriever = pinecone_vectorstore.as_retriever(
     search_type='mmr',  # default : similarity(유사도) / mmr 알고리즘
-    search_kwargs={"k": 5}  # 쿼리와 관련된 chunk를 3개 검색하기 (default : 4)
+    search_kwargs={"k": 5, "include_metadata": True}  # 쿼리와 관련된 chunk를 3개 검색하기 (default : 4)
 )
 
 app = FastAPI()
@@ -70,46 +70,26 @@ class MessageRequest(BaseModel):
 
 @app.post("/chat")
 async def chat_endpoint(req: MessageRequest):
+    chat_prompt = ("너는 금융 상품 전문 챗봇으로, 주어진 문서를 정확하게 이해해서 답변을 해야해."
+            "문서에 있는 내용으로만 답변하고 내용이 없다면, 잘 모르겠다고 답변해."
+            "수치가 있을 경우 명확한 수치를 제시하고, 수치가 여러 개일 경우 가장 중요한 수치를 우선적으로 제시하되, 주요한 수치를 모두 제시해."
+            "그리고 금융용어는 전문 용어를 풀어서 쉽게 설명해줘.중학생도 이해할 수 있을 정도로."
+            "금융 용어의 경우, 금융과 관련되지 않은 질문을 하면 모른다고 답변하고, 금융과 관련된 용어로만 답변해. 다른 동의어는 무시해."
+            "만약 금융과 관련된 용어라면 문서에 대한 정보를 최우선으로 고려하여 답변하고, 문서에 내용이 부족하다면 일반적인 정의로 답변해.")
     clean_msg = req.message.strip()     # 사용자 질문
+    full_prompt = chat_prompt + clean_msg
     qa = RetrievalQA.from_chain_type(llm=chat_upstage,
                                      chain_type="stuff",
                                      retriever=pinecone_retriever,
                                      return_source_documents=True)
 
-    result = qa(clean_msg)      # 챗봇 답변
-    resultMsg = "Q: " + clean_msg + "\n" + "A: " + result['result']
+    result = qa(full_prompt)      # 챗봇 답변
 
     llm = ChatUpstage()
     prompt = ChatPromptTemplate.from_messages(
         [
-            ("system", "너는 금융용어 및 금융상품 설명 챗봇이 올바르게 답변하는지를 필터링하는 봇이야." \
-             "내용은 Q: (질문 내용)\\nA: (답변 내용) 과 같은 형식으로 들어오는데, 이것을 다음과 같은 요구사항에 따라 출력해야 돼." \
-            "먼저, (질문 내용)에서 \"국민은행\"에 대해 묻는다면 \"KB국민은행\"으로 취급해 줘." \
-            "1순위로 (질문 내용)에 \"금융상품\", \"금융용어\", \"금융서비스\"가 포함되어 있으면 무조건 (답변 내용)을 그대로 출력해야 해." \
-                "2순위로 (질문 내용)이 금융, 금융상품, 금융용어, 금융상품 추천과 관련된 내용이면 무조건 (답변 내용)을 그대로 출력해야 돼." \
-                    "3순위로 (질문 내용)이 음식, 날씨, 스포츠, 게임, 컴퓨터, 언어, 음악, 드라마, 애니메이션, 영화, 사회 등 금융과 관련되지 않은 내용이라면 금융 관련 챗봇이기 때문에 모르겠다거나 설명하기 어렵다고 출력해야 돼." \
-            ),
-
-            # few-shot prompting
-            ("human", "Q: 감가상각이 뭐지?\\nA: 감가상각은 ~ 입니다."),  # human request
-            ("ai", "감가상각은 ~ 입니다."),      # LLM response
-            ("human", "Q: 오늘 점심 추천 좀 해줘.\\nA: 오늘 점심으로는 ~을 추천드립니다."),
-            ("ai",  "음식은 제 전문이 아닙니다. 금융 관련으로 질문해 주세요."),
-            ("human", "Q: C++에서 클래스가 뭐지?\\nA: C++에서 클래스는 ~을 의미합니다."),
-            ("ai",  "프로그래밍 분야는 제 전문이 아니라 답변해드리기 어렵습니다."),
-            ("human", "Q: 국민은행의 금융상품에는 뭐가 있는지 궁금해.\\nA: 국민은행의 금융상품에는 ~"),
-            ("ai",  "국민은행의 금융상품에는 ~"),
-            ("human", "Q: 오늘 금융상담 중 \"만기\"라는 용어가 나왔는데 무슨 뜻인지 모르겠다. 알려줄 수 있어?\\nA: 금융에서 만기란 ~을 말하며, ~"),
-            ("ai",  "금융에서 만기란 ~을 말하며, ~"),
-            ("human", "Q: 리그 오브 레전드에 대해 설명해줘.\\nA: 리그 오브 레전드는 라이엇 게임즈에서 개발한 ~"),
-            ("ai",  "게임은 제 전문이 아니므로 답변해드리기 어렵습니다."),
-            ("human", "Q: 안녕하세요는 일본어로 뭐라고 해?\\nA: \"안녕하세요\"는 일본어로 \"곤니치와\"라고 합니다."),
-            ("ai",  "언어는 제 전문이 아닙니다. 금융 관련으로 질문해 주세요."),
-            ("human", "Q: 국민은행의 ~ 상품의 금리는 얼마인지 궁금해.\\nA: ~ 상품의 금리는 다음과 같습니다. ~"),
-            ("ai",  "~ 상품의 금리는 다음과 같습니다. ~"),
-
             # User Query
-            ("human", resultMsg),
+            ("human", result['result']),
         ]
     )
 
